@@ -7,6 +7,13 @@ app.use(bodyParser.urlencoded({extended: true})); // The body-parser library wil
 
 app.set('view engine', 'ejs'); // sets the ejs dependency as the templating engine
 
+// generate a random number, convert it to an alphanumeric string using base 36. End result is a random alphanumeric string of 6 characters
+function generateRandomString() {
+  let randomArr = Math.random().toString(36).slice(2).split('');
+  randomArr.length = 6;
+  return randomArr.join('');
+}
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -19,6 +26,12 @@ app.get('/', (req, res) => {
 app.get('/urls', (req, res) => {
   let templateVars = { urls: urlDatabase }; // when sending variables to an esj template, we need to send them in an object format so the template can access the data via the object key
   res.render('urls_index', templateVars); // esj automatically looks inside the 'view' directory for any files with the .esj extension. Here we are passing the templateVars object to the urls_index template
+});
+
+app.post('/urls', (req, res) => {
+  console.log(req.body);
+  res.send('Ok');
+  //req.body.longURL
 });
 
 app.get('/urls/new', (req, res) => {
