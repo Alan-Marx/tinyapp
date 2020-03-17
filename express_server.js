@@ -14,6 +14,11 @@ app.get('/', (req, res) => {
   res.send('Hello!');
 });
 
+app.get('/urls', (req, res) => {
+  let templateVars = { urls: urlDatabase }; // when sending variables to an esj template, we need to send them in an object format so the template can access the data via the object key
+  res.render('urls_index', templateVars); // esj automatically looks inside the 'view' directory for any files with the .esj extension. Here we are passing the templateVars object to the urls_index template
+});
+
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabase); // sends the urlDatabase object to client as JSON
 });
