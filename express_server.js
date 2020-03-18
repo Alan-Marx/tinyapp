@@ -2,9 +2,13 @@ const express = require('express');
 const app = express(); 
 const PORT = 8080; 
 const bodyParser = require('body-parser'); 
+const cookieParser = require('cookie-parser');
 
 // The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key 
 app.use(bodyParser.urlencoded({extended: true})); 
+
+// Will parse the Cookie header and populate req.cookies with an object keyed by the cookie names
+app.use(cookieParser());
 
 // sets the ejs dependency as the templating engine
 app.set('view engine', 'ejs');
