@@ -1,8 +1,9 @@
 const express = require('express');
 const app = express(); 
-const PORT = 8080; 
 const bodyParser = require('body-parser'); 
 const cookieParser = require('cookie-parser');
+const PORT = 8080; 
+
 
 // The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key 
 app.use(bodyParser.urlencoded({extended: true})); 
@@ -13,17 +14,29 @@ app.use(cookieParser());
 // sets the ejs dependency as the templating engine
 app.set('view engine', 'ejs');
 
+const urlDatabase = {
+  "b2xVn2": "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com"
+};
+
+class User {
+  constructor(userRandomId, userEmail, userPassword) {
+    this.id = userRandomId,
+    this.email = userEmail,
+    this.password = userPassword
+  }
+}
+
+const userDatabase = {
+  
+};
+
 // generate a random number, convert it to an alphanumeric string using base 36. End result is a random alphanumeric string of 6 characters
 function generateRandomString() {
   let randomArr = Math.random().toString(36).slice(2).split('');
   randomArr.length = 6;
   return randomArr.join('');
 }
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
 
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
@@ -40,6 +53,14 @@ app.get('/register', (req, res) => {
   res.render('urls_register', templateVars);
 });
 
+app.post('/register', (req, res) => {
+  let userRandomId = generateRandomString();
+  const user = new User(userRandomId,req.body.email, req.body.password);
+  userDatabase[userRandomId] = user;
+  res.cookie('user_id', userRandomId);
+  res.redirect('/urls'); 
+});
+
 
 // middleware routing functions
 app.get('/', (req, res) => {
@@ -54,7 +75,7 @@ app.get('/urls', (req, res) => {
 });
 
 app.post('/urls', (req, res) => {
-  newShortURL = generateRandomString();
+  let newShortURL = generateRandomString();
   urlDatabase[newShortURL] = req.body.longURL;
   res.redirect(`/urls/${newShortURL}`);
 });
