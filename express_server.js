@@ -28,7 +28,6 @@ class User {
 }
 
 const userDatabase = {
-  
 };
 
 // generate a random number, convert it to an alphanumeric string using base 36. End result is a random alphanumeric string of 6 characters
@@ -49,14 +48,14 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  let templateVars = { username: req.cookies["username"] }; 
+  let user = userDatabase[req.cookies["user_id"]];
+  let templateVars = { user: user }; 
   res.render('urls_register', templateVars);
 });
 
 app.post('/register', (req, res) => {
   let userRandomId = generateRandomString();
-  const user = new User(userRandomId,req.body.email, req.body.password);
-  userDatabase[userRandomId] = user;
+  userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
   res.cookie('user_id', userRandomId);
   res.redirect('/urls'); 
 });
@@ -70,7 +69,8 @@ app.get('/', (req, res) => {
 // when sending variables to an esj template, we need to send them in an object format so the template can access the data via the object key
 // esj automatically looks inside the 'view' directory for any files with the .esj extension. Here we are passing the templateVars object to the urls_index template
 app.get('/urls', (req, res) => {
-  let templateVars = { urls: urlDatabase, username: req.cookies["username"] }; 
+  let user = userDatabase[req.cookies["user_id"]];
+  let templateVars = { urls: urlDatabase, user: user }; 
   res.render('urls_index', templateVars); 
 });
 
@@ -81,12 +81,14 @@ app.post('/urls', (req, res) => {
 });
 
 app.get('/urls/new', (req, res) => {
-  let templateVars = { username: req.cookies["username"] };
+  let user = userDatabase[req.cookies["user_id"]];
+  let templateVars = { user: user };
   res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:shortURL', (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
+  let user = userDatabase[req.cookies["user_id"]];
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: user };
   res.render('urls_show', templateVars);
 });
 
