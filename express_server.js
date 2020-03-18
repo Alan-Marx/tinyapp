@@ -25,6 +25,11 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+app.post('/login', (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect('/urls');
+});
+
 // middleware routing functions
 app.get('/', (req, res) => {
   res.send('Hello!');
