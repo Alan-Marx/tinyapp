@@ -53,11 +53,22 @@ app.get('/register', (req, res) => {
   res.render('urls_register', templateVars);
 });
 
+const emailChecker = (em) => {
+  for (let id in userDatabase) {
+    if (userDatabase[id].email === em) {
+      return true;
+    }
+  }
+  return false;
+};
+
+
+
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
     res.sendStatus(400);
-  } else if {
-
+  } else if (emailChecker(req.body.email)) {
+    res.sendStatus(400);
   } else {
   let userRandomId = generateRandomString();
   userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
