@@ -37,6 +37,15 @@ function generateRandomString() {
   return randomArr.join('');
 }
 
+const emailChecker = (em) => {
+  for (let id in userDatabase) {
+    if (userDatabase[id].email === em) {
+      return true;
+    }
+  }
+  return false;
+};
+
 app.get('/login', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let templateVars = { user: user }; 
@@ -44,8 +53,17 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  if (emailChecker(req.body.email)) {
+    for (let id in userDatabase) {
+      if (userDatabase[id].password === req.body.password) {
+        res.cookie('user_id', id);
+        res.redirect('/urls');
+      } else {
+        res.sendStatus(403);
+      }
+    }
+  }
+  res.sendStatus(403);
 });
 
 app.post('/logout', (req, res) => {
@@ -58,15 +76,6 @@ app.get('/register', (req, res) => {
   let templateVars = { user: user }; 
   res.render('urls_register', templateVars);
 });
-
-const emailChecker = (em) => {
-  for (let id in userDatabase) {
-    if (userDatabase[id].email === em) {
-      return true;
-    }
-  }
-  return false;
-};
 
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
