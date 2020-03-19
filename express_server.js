@@ -37,13 +37,19 @@ function generateRandomString() {
   return randomArr.join('');
 }
 
+app.get('/login', (req, res) => {
+  let user = userDatabase[req.cookies["user_id"]];
+  let templateVars = { user: user }; 
+  res.render('urls_login', templateVars);
+});
+
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect('/urls');
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
@@ -61,8 +67,6 @@ const emailChecker = (em) => {
   }
   return false;
 };
-
-
 
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
