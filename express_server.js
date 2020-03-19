@@ -52,6 +52,7 @@ app.get('/login', (req, res) => {
   res.render('urls_login', templateVars);
 });
 
+
 app.post('/login', (req, res) => {
   if (emailChecker(req.body.email)) {
     for (let id in userDatabase) {
@@ -97,10 +98,27 @@ app.get('/', (req, res) => {
 
 // when sending variables to an esj template, we need to send them in an object format so the template can access the data via the object key
 // esj automatically looks inside the 'view' directory for any files with the .esj extension. Here we are passing the templateVars object to the urls_index template
+
+const urlsForUser= (id) => {
+  const userUrls = {};
+  for (let url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      userUrls[url] = urlDatabase[url];
+    }
+  }
+  return userUrls;
+};
+
 app.get('/urls', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
-  let templateVars = { urls: urlDatabase, user: user }; 
-  res.render('urls_index', templateVars); 
+  if (user) {
+    const userUrls = urlsForUser(user.id);
+    let templateVars = { urls: userUrls, user: user }; 
+    res.render('urls_index', templateVars); 
+  } else {
+    let templateVars = { user: user};
+    res.render('urls_index', templateVars);
+  }
 });
 
 app.post('/urls', (req, res) => {
@@ -122,7 +140,7 @@ app.get('/urls/new', (req, res) => {
 app.get('/urls/:shortURL', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let shortURL = req.params.shortURL;
-  let templateVars = { shortURL, longURL: urlDatabase[shortURL].longURL, user: user };
+  let templateVars = { shortURL, longURL: urlDatabase[shortURL].longURL, user: user, urlDatabase };
   res.render('urls_show', templateVars);
 });
 
@@ -136,9 +154,14 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 });
 
+
+
 app.get('/u/:shortURL', (req, res) => {
   res.redirect(urlDatabase[req.params.shortURL].longURL);
 });
+
+
+
 
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabase); // sends the urlDatabase object to client as JSON
