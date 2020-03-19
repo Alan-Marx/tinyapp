@@ -127,7 +127,7 @@ app.get('/urls/:shortURL', (req, res) => {
 });
 
 app.post('/urls/:shortURL', (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.updatedURL;
+  urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
   res.redirect('/urls');
 });
 
