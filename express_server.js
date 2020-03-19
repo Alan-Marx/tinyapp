@@ -54,12 +54,17 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
+  if (req.body.email === '' || req.body.password === '') {
+    res.sendStatus(400);
+  } else if {
+
+  } else {
   let userRandomId = generateRandomString();
   userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
   res.cookie('user_id', userRandomId);
   res.redirect('/urls'); 
+  }
 });
-
 
 // middleware routing functions
 app.get('/', (req, res) => {
