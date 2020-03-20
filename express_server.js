@@ -36,6 +36,17 @@ class User {
   }
 }
 
+// If a user who is not logged in tries to access the home page, they will be redirected to the login page. A logged in user will be redirected to the /urls page.
+app.get('/', (req, res) => {
+  if (req.session.user_id) {
+    res.redirect('/urls');
+    return;
+  } else {
+    res.redirect('/login');
+    return;
+  }
+});
+
 // The user variable, which is either a user object or undefined, is passed on to the template so that the headers partial can know how to display the navigation bar
 app.get('/register', (req, res) => {
   if (req.session.user_id) {
@@ -186,26 +197,6 @@ app.post('/urls/:shortURL/delete', (req, res) => {
     res.status(400).send('You do not have authorization to delete this URL.');
     return;
   }
-});
-
-app.get('/', (req, res) => {
-  if (req.session.user_id) {
-    res.redirect('/urls');
-    return;
-  } else {
-    res.redirect('/login');
-    return;
-  }
-});
-
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase); // sends the urlDatabase object to client as JSON
-  return;
-});
-
-app.get('/hello', (req, res) => {
-  res.send('<html><body>Hello <b>World</b></body></html>\n');
-  return;
 });
 
 // the listen method activates the app express server
