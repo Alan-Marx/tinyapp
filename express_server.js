@@ -1,11 +1,12 @@
 const express = require('express');
-const app = express(); 
-const bodyParser = require('body-parser'); 
+const app = express();
+const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-const PORT = 8080; 
+const bcrypt = require('bcrypt');
+const PORT = 8080;
 
-// The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key 
-app.use(bodyParser.urlencoded({extended: true})); 
+// The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key
+app.use(bodyParser.urlencoded({extended: true}));
 
 // Will parse the Cookie header and populate req.cookies with an object keyed by the cookie names
 app.use(cookieParser());
@@ -23,23 +24,23 @@ const urlDatabase = {
 };
 const userDatabase = {
 };
-// the userDatabase will be filled up by objects of the following class. The keys for each user object will be the same value as their id property 
+// the userDatabase will be filled up by objects of the following class. The keys for each user object will be the same value as their id property
 class User {
-  constructor(userRandomId, userEmail, userPassword) {
+  constructor(userRandomId, userEmail, hashedPassword) {
     this.id = userRandomId,
     this.email = userEmail,
-    this.password = userPassword
+    this.password = hashedPassword;
   }
 }
 
 ///////////////////////// Functions /////////////////////
 
 // generate a random number, convert it to an alphanumeric string using base 36. End result is a random alphanumeric string of 6 characters
-function generateRandomString() {
+const generateRandomString = () => {
   let randomArr = Math.random().toString(36).slice(2).split('');
   randomArr.length = 6;
   return randomArr.join('');
-}
+};
 // this function returns true if the email provided to it as an argument corresponds to an email in one of the user objects inside the user database, meaning that a user already exists for the email provided
 const emailChecker = (em) => {
   for (let id in userDatabase) {
@@ -49,8 +50,8 @@ const emailChecker = (em) => {
   }
   return false;
 };
-// this function takes in a user id and returns an object containing all the url objects with a matching user id. 
-const urlsForUser= (id) => {
+// this function takes in a user id and returns an object containing all the url objects with a matching user id.
+const urlsForUser = (id) => {
   const userUrls = {};
   for (let url in urlDatabase) {
     if (urlDatabase[url].userID === id) {
@@ -65,7 +66,7 @@ const longURLChecker = (userUrls, longUrl) => {
     if (userUrls[url].longURL === longUrl) {
       return true;
     }
-  } 
+  }
   return false;
 };
 
@@ -74,7 +75,7 @@ const longURLChecker = (userUrls, longUrl) => {
 // The user variable, which is either a user object or undefined, is passed on to the template so that the headers partial can know how to display the navigation bar
 app.get('/register', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
-  let templateVars = { user }; 
+  let templateVars = { user };
   res.render('urls_register', templateVars);
   return;
 });
@@ -85,14 +86,15 @@ app.post('/register', (req, res) => {
     res.status(400).send('Either your email and/or password were blank.');
     return;
   } else if (emailChecker(req.body.email)) {
-      res.status(400).send('The email you have entered has already been registered. Please log in.');
-      return;
+    res.status(400).send('The email you have entered has already been registered. Please log in.');
+    return;
   } else {
-      let userRandomId = generateRandomString();
-      userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
-      res.cookie('user_id', userRandomId);
-      res.redirect('/urls'); 
-      return;
+    let userRandomId = generateRandomString();
+    let hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    userDatabase[userRandomId] = new User(userRandomId,req.body.email, hashedPassword);
+    res.cookie('user_id', userRandomId);
+    res.redirect('/urls');
+    return;
   }
 });
 
@@ -102,8 +104,8 @@ app.get('/urls', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   if (user) {
     const userUrls = urlsForUser(user.id);
-    let templateVars = { urls: userUrls, user }; 
-    res.render('urls_index', templateVars); 
+    let templateVars = { urls: userUrls, user };
+    res.render('urls_index', templateVars);
     return;
   } else {
     let templateVars = { user };
@@ -115,7 +117,7 @@ app.get('/urls', (req, res) => {
 // a user can create a new url object (and accompanying short url for the inputted long url), as long as they have not already used that long url before
 app.post('/urls', (req, res) => {
   const userUrls = urlsForUser(req.cookies["user_id"]);
-  if(!longURLChecker(userUrls, req.body.longURL)) {
+  if (!longURLChecker(userUrls, req.body.longURL)) {
     let newShortURL = generateRandomString();
     urlDatabase[newShortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
     res.redirect(`/urls/${newShortURL}`);
@@ -126,7 +128,7 @@ app.post('/urls', (req, res) => {
   }
 });
 
-// only users who are logged in can access this page and create new short url objects in the url database. 
+// only users who are logged in can access this page and create new short url objects in the url database.
 app.get('/urls/new', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let templateVars = { user };
@@ -142,7 +144,7 @@ app.get('/urls/new', (req, res) => {
 // this route simply sends sends the template user information so that the header partial can know what to display
 app.get('/login', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
-  let templateVars = { user }; 
+  let templateVars = { user };
   res.render('urls_login', templateVars);
   return;
 });
@@ -151,18 +153,19 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   if (emailChecker(req.body.email)) {
     for (let id in userDatabase) {
-      if (userDatabase[id].email === req.body.email && userDatabase[id].password === req.body.password) {
+      if (userDatabase[id].email === req.body.email && bcrypt.compareSync(req.body.password, userDatabase[id].password)) {
+        console.log(req.body.password, userDatabase[id].password);
         res.cookie('user_id', id);
         res.redirect('/urls');
         return;
-      } 
-    } 
+      }
+    }
     res.status(403).send('The password you have entered is incorrect.');
     return;
   } else {
     res.status(403).send('The email you have entered does not exist in our records.');
     return;
-    }
+  }
 });
 
 // a user who clicks the logout button will have their cookie with the user id value cleared
@@ -201,7 +204,7 @@ app.post('/urls/:shortURL', (req, res) => {
 
 // only the user that created an url object can delete said object
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if(urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
+  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
     delete urlDatabase[req.params.shortURL];
     res.redirect('/urls');
     return;
