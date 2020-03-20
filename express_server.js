@@ -5,6 +5,8 @@ const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const PORT = 8080;
 
+const { emailChecker } = require('./helper_functions');
+
 // The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -44,15 +46,7 @@ const generateRandomString = () => {
   randomArr.length = 6;
   return randomArr.join('');
 };
-// this function returns true if the email provided to it as an argument corresponds to an email in one of the user objects inside the user database, meaning that a user already exists for the email provided
-const emailChecker = (em) => {
-  for (let id in userDatabase) {
-    if (userDatabase[id].email === em) {
-      return true;
-    }
-  }
-  return false;
-};
+
 // this function takes in a user id and returns an object containing all the url objects with a matching user id.
 const urlsForUser = (id) => {
   const userUrls = {};
@@ -88,7 +82,7 @@ app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Either your email and/or password were blank.');
     return;
-  } else if (emailChecker(req.body.email)) {
+  } else if (emailChecker(req.body.email, userDatabase)) {
     res.status(400).send('The email you have entered has already been registered. Please log in.');
     return;
   } else {
@@ -155,7 +149,7 @@ app.get('/login', (req, res) => {
 
 //if the email passed into the login page corresponds to an email of a user object in the user database, and the password for that account corresponds to the password entered into the login page, then the user is given a cookie with the user id value of their user account
 app.post('/login', (req, res) => {
-  if (emailChecker(req.body.email)) {
+  if (emailChecker(req.body.email, userDatabase)) {
     for (let id in userDatabase) {
       if (userDatabase[id].email === req.body.email && bcrypt.compareSync(req.body.password, userDatabase[id].password)) {
         console.log(req.body.password, userDatabase[id].password);
