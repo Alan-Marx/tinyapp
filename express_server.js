@@ -1,15 +1,18 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const PORT = 8080;
 
 // The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the 'body' key
 app.use(bodyParser.urlencoded({extended: true}));
 
-// Will parse the Cookie header and populate req.cookies with an object keyed by the cookie names
-app.use(cookieParser());
+// this middleware will attach the property 'session' to 'req'.
+app.use(cookieSession({
+  name: 'session',
+  keys: ['7ae19decbaaf9434ebc0']
+}));
 
 // sets the ejs dependency as the templating engine when sending variables to an esj template, we need to send them in an object format so the template can access the data via the object key
 // esj automatically looks inside the 'view' directory for any files with the .esj extension. Here we are passing the templateVars object to the urls_index template
@@ -74,7 +77,7 @@ const longURLChecker = (userUrls, longUrl) => {
 
 // The user variable, which is either a user object or undefined, is passed on to the template so that the headers partial can know how to display the navigation bar
 app.get('/register', (req, res) => {
-  let user = userDatabase[req.cookies["user_id"]];
+  let user = userDatabase[req.session.user_id];
   let templateVars = { user };
   res.render('urls_register', templateVars);
   return;
@@ -92,7 +95,8 @@ app.post('/register', (req, res) => {
     let userRandomId = generateRandomString();
     let hashedPassword = bcrypt.hashSync(req.body.password, 10);
     userDatabase[userRandomId] = new User(userRandomId,req.body.email, hashedPassword);
-    res.cookie('user_id', userRandomId);
+    req.session.user_id = userRandomId;
+    //res.cookie('user_id', userRandomId);
     res.redirect('/urls');
     return;
   }
@@ -101,7 +105,7 @@ app.post('/register', (req, res) => {
 // the user variable is again passed on to the template so that the header partial can know what to display, and is also used to send the index template an object consisting of the url objects whose user id values match the user id value of the user.
 // This allows the /urls page to only display the url objects in the url database that belong to the user. If a valid user is not signed in, the /urls page will ask them to register or login
 app.get('/urls', (req, res) => {
-  let user = userDatabase[req.cookies["user_id"]];
+  let user = userDatabase[req.session.user_id];
   if (user) {
     const userUrls = urlsForUser(user.id);
     let templateVars = { urls: userUrls, user };
@@ -116,10 +120,10 @@ app.get('/urls', (req, res) => {
 
 // a user can create a new url object (and accompanying short url for the inputted long url), as long as they have not already used that long url before
 app.post('/urls', (req, res) => {
-  const userUrls = urlsForUser(req.cookies["user_id"]);
+  const userUrls = urlsForUser(req.session.user_id);
   if (!longURLChecker(userUrls, req.body.longURL)) {
     let newShortURL = generateRandomString();
-    urlDatabase[newShortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
+    urlDatabase[newShortURL] = { longURL: req.body.longURL, userID: req.session.user_id };
     res.redirect(`/urls/${newShortURL}`);
     return;
   } else {
@@ -130,7 +134,7 @@ app.post('/urls', (req, res) => {
 
 // only users who are logged in can access this page and create new short url objects in the url database.
 app.get('/urls/new', (req, res) => {
-  let user = userDatabase[req.cookies["user_id"]];
+  let user = userDatabase[req.session.user_id];
   let templateVars = { user };
   if (user) {
     res.render('urls_new', templateVars);
@@ -143,7 +147,7 @@ app.get('/urls/new', (req, res) => {
 
 // this route simply sends sends the template user information so that the header partial can know what to display
 app.get('/login', (req, res) => {
-  let user = userDatabase[req.cookies["user_id"]];
+  let user = userDatabase[req.session.user_id];
   let templateVars = { user };
   res.render('urls_login', templateVars);
   return;
@@ -155,7 +159,7 @@ app.post('/login', (req, res) => {
     for (let id in userDatabase) {
       if (userDatabase[id].email === req.body.email && bcrypt.compareSync(req.body.password, userDatabase[id].password)) {
         console.log(req.body.password, userDatabase[id].password);
-        res.cookie('user_id', id);
+        req.session.user_id = id;
         res.redirect('/urls');
         return;
       }
@@ -170,14 +174,14 @@ app.post('/login', (req, res) => {
 
 // a user who clicks the logout button will have their cookie with the user id value cleared
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/urls');
   return;
 });
 
 // the urls_show template actually implements conditional logic that only allows the user that created the shortURL in question to see the page. Otherwise, a user is told that they are not authorized to see the page
 app.get('/urls/:shortURL', (req, res) => {
-  let user = userDatabase[req.cookies["user_id"]];
+  let user = userDatabase[req.session.user_id];
   let shortURL = req.params.shortURL;
   let templateVars = { shortURL, user, urlDatabase };
   res.render('urls_show', templateVars);
@@ -192,7 +196,7 @@ app.get('/u/:shortURL', (req, res) => {
 
 // only the user that created an url object can edit said object
 app.post('/urls/:shortURL', (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
+  if (urlDatabase[req.params.shortURL].userID === req.session.user_id) {
     urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
     res.redirect('/urls');
     return;
@@ -204,7 +208,7 @@ app.post('/urls/:shortURL', (req, res) => {
 
 // only the user that created an url object can delete said object
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
+  if (urlDatabase[req.params.shortURL].userID === req.session.user_id) {
     delete urlDatabase[req.params.shortURL];
     res.redirect('/urls');
     return;
@@ -215,8 +219,13 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Hello!');
-  return;
+  if (req.session.user_id) {
+    res.redirect('/urls');
+    return;
+  } else {
+    res.redirect('/login');
+    return;
+  }
 });
 
 app.get('/urls.json', (req, res) => {
