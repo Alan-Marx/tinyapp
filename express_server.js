@@ -60,7 +60,7 @@ app.get('/register', (req, res) => {
   }
 });
 
-// as long as an email and password are provided and the email has not already been registered, a new user object is added to the user database and the client is given a user id cookie
+// as long as an email and password are provided and the email has not already been registered, a new user object is added to the user database and the client is given an encrypted cookie for authentication purposes.
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Either your email and/or password were blank.');
@@ -134,7 +134,7 @@ app.get('/login', (req, res) => {
   }
 });
 
-//if the email passed into the login page corresponds to an email of a user object in the user database, and the password for that account corresponds to the password entered into the login page, then the user is given a cookie with the user id value of their user account
+//if the email passed into the login page corresponds to an email of a user object in the user database, and the password for that account corresponds to the password entered into the login page, then the user is given an encrypted cookie with the user id value of their user account.
 app.post('/login', (req, res) => {
   if (emailChecker(req.body.email, userDatabase)) {
     for (let id in userDatabase) {
@@ -153,7 +153,7 @@ app.post('/login', (req, res) => {
   }
 });
 
-// a user who clicks the logout button will have their cookie with the user id value cleared
+// a user who clicks the logout button will have their encrypted authentication cookie cleared.
 app.post('/logout', (req, res) => {
   req.session = null;
   res.redirect('/urls');
