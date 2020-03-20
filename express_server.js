@@ -76,19 +76,23 @@ app.get('/register', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let templateVars = { user }; 
   res.render('urls_register', templateVars);
+  return;
 });
 
 // as long as an email and password are provided and the email has not already been registered, a new user object is added to the user database and the client is given a user id cookie
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
-    res.sendStatus(400);
+    res.status(400).send('Either your email and/or password were blank.');
+    return;
   } else if (emailChecker(req.body.email)) {
-    res.sendStatus(400);
+      res.status(400).send('The email you have entered has already been registered. Please log in.');
+      return;
   } else {
-  let userRandomId = generateRandomString();
-  userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
-  res.cookie('user_id', userRandomId);
-  res.redirect('/urls'); 
+      let userRandomId = generateRandomString();
+      userDatabase[userRandomId] = new User(userRandomId,req.body.email, req.body.password);
+      res.cookie('user_id', userRandomId);
+      res.redirect('/urls'); 
+      return;
   }
 });
 
@@ -100,9 +104,11 @@ app.get('/urls', (req, res) => {
     const userUrls = urlsForUser(user.id);
     let templateVars = { urls: userUrls, user }; 
     res.render('urls_index', templateVars); 
+    return;
   } else {
     let templateVars = { user };
     res.render('urls_index', templateVars);
+    return;
   }
 });
 
@@ -113,8 +119,10 @@ app.post('/urls', (req, res) => {
     let newShortURL = generateRandomString();
     urlDatabase[newShortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
     res.redirect(`/urls/${newShortURL}`);
+    return;
   } else {
     res.redirect('/urls');
+    return;
   }
 });
 
@@ -124,16 +132,19 @@ app.get('/urls/new', (req, res) => {
   let templateVars = { user };
   if (user) {
     res.render('urls_new', templateVars);
+    return;
   } else {
     res.redirect('/login');
+    return;
   }
 });
 
-// 
+// this route simply sends sends the template user information so that the header partial can know what to display
 app.get('/login', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let templateVars = { user }; 
   res.render('urls_login', templateVars);
+  return;
 });
 
 //if the email passed into the login page corresponds to an email of a user object in the user database, and the password for that account corresponds to the password entered into the login page, then the user is given a cookie with the user id value of their user account
@@ -143,10 +154,14 @@ app.post('/login', (req, res) => {
       if (userDatabase[id].email === req.body.email && userDatabase[id].password === req.body.password) {
         res.cookie('user_id', id);
         res.redirect('/urls');
+        return;
       } 
-    }
+    } 
+    res.status(403).send('The password you have entered is incorrect.');
+    return;
   } else {
-    res.sendStatus(403);
+    res.status(403).send('The email you have entered does not exist in our records.');
+    return;
     }
 });
 
@@ -154,27 +169,33 @@ app.post('/login', (req, res) => {
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
+  return;
 });
 
-
+// the urls_show template actually implements conditional logic that only allows the user that created the shortURL in question to see the page. Otherwise, a user is told that they are not authorized to see the page
 app.get('/urls/:shortURL', (req, res) => {
   let user = userDatabase[req.cookies["user_id"]];
   let shortURL = req.params.shortURL;
-  let templateVars = { shortURL, longURL: urlDatabase[shortURL].longURL, user: user, urlDatabase };
+  let templateVars = { shortURL, user, urlDatabase };
   res.render('urls_show', templateVars);
+  return;
 });
 
+// when the shortURL link is clicked on a /urls/:shortURL page, the user will be redirect to the long url associated with that short url
 app.get('/u/:shortURL', (req, res) => {
   res.redirect(urlDatabase[req.params.shortURL].longURL);
+  return;
 });
 
 // only the user that created an url object can edit said object
 app.post('/urls/:shortURL', (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_ud"]) {
+  if (urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
     urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
     res.redirect('/urls');
+    return;
   } else {
-    res.sendStatus(400);
+    res.status(400).send('You do not have authorization to change this URL.');
+    return;
   }
 });
 
@@ -183,24 +204,26 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   if(urlDatabase[req.params.shortURL].userID === req.cookies["user_id"]) {
     delete urlDatabase[req.params.shortURL];
     res.redirect('/urls');
+    return;
   } else {
-    res.sendStatus(400);
+    res.status(400).send('You do not have authorization to delete this URL.');
+    return;
   }
 });
 
-
-
-
 app.get('/', (req, res) => {
   res.send('Hello!');
+  return;
 });
 
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabase); // sends the urlDatabase object to client as JSON
+  return;
 });
 
 app.get('/hello', (req, res) => {
   res.send('<html><body>Hello <b>World</b></body></html>\n');
+  return;
 });
 
 // the listen method activates the app express server
